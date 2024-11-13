@@ -1,0 +1,7 @@
+as admin:
+
+http://localhost:8000/api/tickets/chat-sessions/3/messages/
+http://localhost:8000/api/tickets/chat-sessions/
+http://localhost:8000/api/tickets/
+http://localhost:8000/api/tickets/1/
+http://localhost:8000/api/tickets/1/comments/

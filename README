@@ -1,0 +1,37 @@
+Sub-group 3 - Ticketing and Chat
+
+
+IMPORTANT make sure to use react-router-dom@6.28.0
+
+current db is dumped in lab8_db/ecofix_portal_db3.sql
+
+see working_endpoints.txt for endpoints
+
+currently only admin can use endpoints - need whatever group is doing login for users
+
+when making changes to models.py need to run these to update db:
+
+# In a separate terminal or after stopping the server
+python manage.py makemigrations
+python manage.py migrate
+
+# restart the server to ensure changes are loaded
+python manage.py runserver
+
+# kill django server
+pkill -f runserver
+
+# run server 
+cd ecofix_portal/backend
+nix-shell
+python manage.py runserver
+
+# run frontend 
+cd ecofix_portal/frontend
+nix-shell
+npm start
+
+# may need to initialize
+npm init -y
+
+

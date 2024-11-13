@@ -1,0 +1,47 @@
+<!-- support/templates/support/home.html -->
+<!-- FIXME not in use -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home - EcoFix Portal</title>
+    <style>
+        /* Basic styling for the home page */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            padding: 2rem;
+        }
+        .logout-button {
+            float: right;
+        }
+        .content {
+            margin-top: 2rem;
+        }
+        .api-links a {
+            display: block;
+            margin: 0.5rem 0;
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .api-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <a href="{% url 'logout' %}" class="logout-button">Logout</a>
+        <h1>Welcome to EcoFix Portal</h1>
+    </div>
+    <div class="content">
+        <h2>API Endpoints</h2>
+        <div class="api-links">
+            <a href="/api/tickets/">Support Tickets</a>
+            <a href="/api/chat-sessions/">Chat Sessions</a>
+            <!-- Add more links as needed -->
+        </div>
+    </div>
+</body>
+</html>
+
