@@ -1,121 +1,192 @@
-# support/views.py
-
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect
-from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from rest_framework import generics, viewsets
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth.models import User
-from .models import SupportTicket, ChatSession, ChatMessage, TicketComment
-from .serializers import (
-    SupportTicketSerializer, 
-    TicketCommentSerializer, 
-    ChatSessionSerializer, 
-    ChatMessageSerializer,
-    UserSerializer
+from django.contrib.auth import get_user_model
+from .models import (
+    SupportTicket,
+    ChatSession,
+    ChatMessage,
+    TicketComment,
+    Product,
+    Purchase,
+    PurchaseDetail,
+    LoyaltyTransaction,
+    Admin
 )
+from .serializers import (
+    SupportTicketSerializer,
+    TicketCommentSerializer,
+    ChatSessionSerializer,
+    ChatMessageSerializer,
+    UserSerializer,
+    AdminSerializer,
+    ProductSerializer,
+    PurchaseSerializer,
+    PurchaseDetailSerializer,
+    LoyaltyTransactionSerializer
+)
+from .forms import CustomAuthenticationForm
 
-# Authentication Views
+User = get_user_model()
+
+
 
 def login_view(request):
     if request.method == "POST":
-        form = AuthenticationForm(request, data=request.POST)
+        form = CustomAuthenticationForm(request, data=request.POST)
         if form.is_valid():
-            username = form.cleaned_data.get("username")
+            email = form.cleaned_data.get("username")
             password = form.cleaned_data.get("password")
-            user = authenticate(request, username=username, password=password)
+            user = authenticate(request, email=email, password=password)
             if user is not None:
                 login(request, user)
-                messages.info(request, f"You are now logged in as {username}.")
-                return redirect("home")  # Redirect to home page after login
+                messages.info(request, f"You are now logged in as {email}.")
+                return redirect("home")  
             else:
-                messages.error(request, "Invalid username or password.")
+                messages.error(request, "Invalid email or password.")
         else:
-            messages.error(request, "Invalid username or password.")
+            messages.error(request, "Invalid email or password.")
     else:
-        form = AuthenticationForm()
+        form = CustomAuthenticationForm()
     return render(request, "support/login.html", {"form": form})
 
 def logout_view(request):
     logout(request)
     messages.info(request, "You have successfully logged out.")
-    return redirect("login")  # Redirect to login page after logout
+    return redirect("login")  
 
 @login_required
 def home(request):
     return render(request, "support/home.html")
 
-# API Views
+
+
+
 
 class SupportTicketListCreateView(generics.ListCreateAPIView):
     serializer_class = SupportTicketSerializer
-    permission_classes = [IsAuthenticated]  # Require authentication
-    
+    permission_classes = [IsAuthenticated]
+
     def get_queryset(self):
-        # Clients see their own tickets; Admins see all tickets
         user = self.request.user
-        if user.is_staff:
+        if user.is_staff or isinstance(user, Admin):
             return SupportTicket.objects.all()
         else:
             return SupportTicket.objects.filter(user=user)
-    
+
     def perform_create(self, serializer):
-        # Automatically set user to the logged-in user
         serializer.save(user=self.request.user)
-        #serializer.save(user="josh")
-        # 
 
 class SupportTicketDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = SupportTicketSerializer
     permission_classes = [IsAuthenticated]
-    lookup_field = 'ticket_id'
-    
+    lookup_field = 'ticketID'
+
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff:
+        if user.is_staff or isinstance(user, Admin):
             return SupportTicket.objects.all()
         else:
             return SupportTicket.objects.filter(user=user)
-    
+
     def perform_update(self, serializer):
         serializer.save()
+
+
 
 class TicketCommentListCreateView(generics.ListCreateAPIView):
     serializer_class = TicketCommentSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_queryset(self):
-        ticket_id = self.kwargs['ticket_id']
-        return TicketComment.objects.filter(ticket__ticket_id=ticket_id)
-    
+        ticket_id = self.kwargs['ticketID']
+        return TicketComment.objects.filter(ticket__ticketID=ticket_id)
+
     def perform_create(self, serializer):
-        ticket_id = self.kwargs['ticket_id']
-        ticket = SupportTicket.objects.get(ticket_id=ticket_id)
+        ticket_id = self.kwargs['ticketID']
+        ticket = SupportTicket.objects.get(ticketID=ticket_id)
         serializer.save(user=self.request.user, ticket=ticket)
+
+
 
 class ChatSessionListCreateView(generics.ListCreateAPIView):
     serializer_class = ChatSessionSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_queryset(self):
         user = self.request.user
-        return ChatSession.objects.filter(client=user) | ChatSession.objects.filter(agent=user)
-    
+        if isinstance(user, Admin):
+            
+            return ChatSession.objects.filter(agent=user.admin)
+        else:
+            
+            return ChatSession.objects.filter(client=user)
+
     def perform_create(self, serializer):
-        # On creation, only client is set; agent assignment is handled separately
         serializer.save(client=self.request.user)
+
+class ChatSessionDetailView(generics.RetrieveUpdateAPIView):
+    serializer_class = ChatSessionSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'sessionID'
+
+    def get_queryset(self):
+        user = self.request.user
+        if isinstance(user, Admin):
+            return ChatSession.objects.filter(agent=user.admin)
+        else:
+            return ChatSession.objects.filter(client=user)
+
+
 
 class ChatMessageListCreateView(generics.ListCreateAPIView):
     serializer_class = ChatMessageSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_queryset(self):
-        session_id = self.kwargs['session_id']
-        return ChatMessage.objects.filter(session__session_id=session_id)
+        session_id = self.kwargs['sessionID']
+        return ChatMessage.objects.filter(session__sessionID=session_id)
+
     def perform_create(self, serializer):
-        session_id = self.kwargs['session_id']
-        session = ChatSession.objects.get(session_id=session_id)
+        session_id = self.kwargs['sessionID']
+        session = ChatSession.objects.get(sessionID=session_id)
         serializer.save(sender=self.request.user, session=session)
+
+
+
+class ProductListCreateView(generics.ListCreateAPIView):
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Product.objects.all()
+
+
+
+class PurchaseListCreateView(generics.ListCreateAPIView):
+    serializer_class = PurchaseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Purchase.objects.filter(user=user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+
+class LoyaltyTransactionListCreateView(generics.ListCreateAPIView):
+    serializer_class = LoyaltyTransactionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return LoyaltyTransaction.objects.filter(user=user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
