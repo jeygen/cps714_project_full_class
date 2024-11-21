@@ -7,7 +7,7 @@ current db is dumped in lab8_db/ecofix_portal_db3.sql
 
 see working_endpoints.txt for endpoints
 
-currently only admin can use endpoints - need whatever group is doing login for users
+admin can be used tp demonstrate endpoints
 
 when making changes to models.py need to run these to update db:
 
